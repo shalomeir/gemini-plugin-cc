@@ -72,6 +72,10 @@ import {
 
 const ROOT_DIR = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
 
+// Default model for multimodal commands (media, ui-review).
+// Override via GEMINI_MULTIMODAL_MODEL env var or --model flag.
+const DEFAULT_MULTIMODAL_MODEL = process.env.GEMINI_MULTIMODAL_MODEL || "gemini-3-flash-preview";
+
 function printUsage() {
   console.log(
     [
@@ -319,7 +323,7 @@ async function executeUiReviewRun(request) {
   const fullPrompt = buildUiReviewPrompt(fileRefs, diffContext, request.prompt);
 
   const result = await runGeminiStream(request.cwd, fullPrompt, {
-    model: request.model || "gemini-3-flash-preview",
+    model: request.model || DEFAULT_MULTIMODAL_MODEL,
     onProgress: request.onProgress
   });
 
@@ -425,7 +429,7 @@ async function executeMediaRun(request) {
   }
 
   const result = await runGeminiStream(request.cwd, request.prompt, {
-    model: request.model || "gemini-3-flash-preview",
+    model: request.model || DEFAULT_MULTIMODAL_MODEL,
     onProgress: request.onProgress
   });
 
