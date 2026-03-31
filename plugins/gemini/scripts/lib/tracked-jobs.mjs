@@ -3,8 +3,6 @@ import process from "node:process";
 
 import { readJobFile, resolveJobFile, resolveJobLogFile, upsertJob, writeJobFile } from "./state.mjs";
 
-export const SESSION_ID_ENV = "GEMINI_COMPANION_SESSION_ID";
-
 export function nowIso() {
   return new Date().toISOString();
 }
@@ -33,16 +31,15 @@ export function createJobLogFile(workspaceRoot, jobId, title) {
   return logFile;
 }
 
-export function createJobRecord(base, options = {}) {
-  const env = options.env ?? process.env;
-  const sessionId = env[options.sessionIdEnv ?? SESSION_ID_ENV];
+export function createJobRecord(base) {
   return {
     ...base,
-    createdAt: nowIso(),
-    ...(sessionId ? { sessionId } : {})
+    createdAt: nowIso()
   };
 }
 
+// Only update the state index on phase change — skip the redundant job file write.
+// Final state is written by runTrackedJob on completion.
 export function createJobProgressUpdater(workspaceRoot, jobId) {
   let lastPhase = null;
 
@@ -51,17 +48,8 @@ export function createJobProgressUpdater(workspaceRoot, jobId) {
     if (!phase || phase === lastPhase) {
       return;
     }
-
     lastPhase = phase;
     upsertJob(workspaceRoot, { id: jobId, phase });
-
-    const jobFile = resolveJobFile(workspaceRoot, jobId);
-    if (!fs.existsSync(jobFile)) {
-      return;
-    }
-
-    const storedJob = readJobFile(jobFile);
-    writeJobFile(workspaceRoot, jobId, { ...storedJob, phase });
   };
 }
 

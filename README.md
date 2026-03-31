@@ -18,11 +18,16 @@ This is an **unofficial, community-driven** adaptation of [codex-plugin-cc](http
 
 ## Install
 
-Clone and install the plugin in Claude Code:
+Add the marketplace in Claude Code:
 
 ```bash
-git clone https://github.com/shalomeir/gemini-plugin-cc.git
-claude plugin add ./gemini-plugin-cc
+/plugin marketplace add shalomeir/gemini-plugin-cc
+```
+
+Install the plugin:
+
+```bash
+/plugin install gemini@google-gemini
 ```
 
 Reload plugins:
@@ -35,6 +40,13 @@ Then run:
 
 ```bash
 /gemini:setup
+```
+
+**For local development**, you can also load the plugin directly:
+
+```bash
+git clone https://github.com/shalomeir/gemini-plugin-cc.git
+claude --plugin-dir ./gemini-plugin-cc
 ```
 
 `/gemini:setup` will tell you whether Gemini CLI is ready. If Gemini CLI is missing and npm is available, it can offer to install it for you.
@@ -247,6 +259,18 @@ Codex's rescue command delegates through a subagent with session continuity and 
 ### Stream-JSON instead of JSON-RPC
 
 Codex streams responses through a JSON-RPC socket connection. Gemini CLI uses [NDJSON streaming](https://google-gemini.github.io/gemini-cli/docs/cli/headless.html) (`--output-format stream-json`) with line-delimited JSON events. The event protocol is different but the user experience is similar.
+
+### Simplified internals
+
+Because Gemini CLI is one-shot with no persistent runtime, several codex-plugin-cc patterns were intentionally simplified:
+
+- **No session tracking**: Codex groups jobs by session ID for lifecycle management. Since Gemini CLI has no sessions, this plugin skips session IDs entirely — on session end, all running jobs are terminated unconditionally.
+- **No status polling**: Codex's `/codex:status --wait` polls for completion. Since there is no persistent process to poll, `/gemini:status` returns the current snapshot immediately.
+- **Reduced job history**: Codex keeps 50 jobs; this plugin keeps 10. One-shot invocations accumulate history quickly with less value.
+- **No state versioning or config store**: Codex prepares for schema migration and per-project config. This plugin's state is just a flat job list — simple enough that versioning adds no value.
+- **Lighter progress tracking**: Phase updates go to the state index only, not double-written to individual job files on every event. Final state is written once on completion.
+
+The background task execution pattern (`--background` with detached workers) is retained — it is genuinely useful for long-running operations like code reviews.
 
 ## Environment Setup
 

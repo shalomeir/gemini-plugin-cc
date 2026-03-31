@@ -2,7 +2,6 @@ import fs from "node:fs";
 
 import { listJobs, readJobFile, resolveJobFile } from "./state.mjs";
 import { resolveWorkspaceRoot } from "./workspace.mjs";
-import { nowIso } from "./tracked-jobs.mjs";
 
 export function sortJobsNewestFirst(jobs) {
   return [...jobs].sort((a, b) =>
@@ -106,7 +105,6 @@ export function buildStatusSnapshot(cwd, options = {}) {
   }
 
   return {
-    config: { },
     running,
     latestFinished,
     recent

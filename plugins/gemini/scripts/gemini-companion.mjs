@@ -51,8 +51,7 @@ import {
   createJobRecord,
   createProgressReporter,
   nowIso,
-  runTrackedJob,
-  SESSION_ID_ENV
+  runTrackedJob
 } from "./lib/tracked-jobs.mjs";
 import { resolveWorkspaceRoot } from "./lib/workspace.mjs";
 import {
@@ -74,7 +73,7 @@ function printUsage() {
       "  gemini-companion setup [--json]",
       "  gemini-companion review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>]",
       "  gemini-companion task [--background] [--model <model>] [--sandbox] [prompt]",
-      "  gemini-companion status [job-id] [--all] [--json]",
+      "  gemini-companion status [job-id] [--all]",
       "  gemini-companion result [job-id] [--json]",
       "  gemini-companion cancel [job-id] [--json]"
     ].join("\n")
@@ -135,10 +134,6 @@ function firstMeaningfulLine(text, fallback) {
     .map((value) => value.trim())
     .find(Boolean);
   return line ?? fallback;
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ── Setup ────────────────────────────────────────────────────────────
@@ -446,32 +441,18 @@ async function handleTaskWorker(argv) {
 
 // ── Status / Result / Cancel ─────────────────────────────────────────
 
-const DEFAULT_STATUS_WAIT_TIMEOUT_MS = 240000;
-const DEFAULT_STATUS_POLL_INTERVAL_MS = 2000;
-
-async function handleStatus(argv) {
+// Gemini CLI is one-shot — no persistent process to poll, so just show current state.
+function handleStatus(argv) {
   const { options, positionals } = parseCommandInput(argv, {
-    valueOptions: ["cwd", "timeout-ms", "poll-interval-ms"],
-    booleanOptions: ["json", "all", "wait"]
+    valueOptions: ["cwd"],
+    booleanOptions: ["json", "all"]
   });
 
   const cwd = resolveCommandCwd(options);
   const reference = positionals[0] ?? "";
 
   if (reference) {
-    let snapshot;
-    if (options.wait) {
-      const timeoutMs = Math.max(0, Number(options["timeout-ms"]) || DEFAULT_STATUS_WAIT_TIMEOUT_MS);
-      const pollMs = Math.max(100, Number(options["poll-interval-ms"]) || DEFAULT_STATUS_POLL_INTERVAL_MS);
-      const deadline = Date.now() + timeoutMs;
-      snapshot = buildSingleJobSnapshot(cwd, reference);
-      while ((snapshot.job.status === "queued" || snapshot.job.status === "running") && Date.now() < deadline) {
-        await sleep(Math.min(pollMs, Math.max(0, deadline - Date.now())));
-        snapshot = buildSingleJobSnapshot(cwd, reference);
-      }
-    } else {
-      snapshot = buildSingleJobSnapshot(cwd, reference);
-    }
+    const snapshot = buildSingleJobSnapshot(cwd, reference);
     outputCommandResult(snapshot, renderJobStatusReport(snapshot.job), options.json);
     return;
   }
@@ -585,7 +566,7 @@ async function main() {
       await handleTaskWorker(argv);
       break;
     case "status":
-      await handleStatus(argv);
+      handleStatus(argv);
       break;
     case "result":
       handleResult(argv);

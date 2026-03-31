@@ -2,7 +2,10 @@
 
 /**
  * Session lifecycle hook for Gemini Companion.
- * Handles SessionStart (inject env vars) and SessionEnd (cleanup jobs).
+ * Handles SessionStart (inject env vars) and SessionEnd (terminate running jobs).
+ *
+ * Gemini CLI is one-shot — there are no persistent sessions to track.
+ * On SessionEnd we simply terminate any still-running background jobs.
  */
 
 import fs from "node:fs";
@@ -12,7 +15,6 @@ import { terminateProcessTree } from "./lib/process.mjs";
 import { loadState, resolveStateFile, saveState } from "./lib/state.mjs";
 import { resolveWorkspaceRoot } from "./lib/workspace.mjs";
 
-export const SESSION_ID_ENV = "GEMINI_COMPANION_SESSION_ID";
 const PLUGIN_DATA_ENV = "CLAUDE_PLUGIN_DATA";
 
 function readHookInput() {
@@ -34,8 +36,8 @@ function appendEnvVar(name, value) {
   fs.appendFileSync(process.env.CLAUDE_ENV_FILE, `export ${name}=${shellEscape(value)}\n`, "utf8");
 }
 
-function cleanupSessionJobs(cwd, sessionId) {
-  if (!cwd || !sessionId) {
+function cleanupRunningJobs(cwd) {
+  if (!cwd) {
     return;
   }
 
@@ -46,16 +48,12 @@ function cleanupSessionJobs(cwd, sessionId) {
   }
 
   const state = loadState(workspaceRoot);
-  const removedJobs = state.jobs.filter((job) => job.sessionId === sessionId);
-  if (removedJobs.length === 0) {
+  const activeJobs = state.jobs.filter((job) => job.status === "queued" || job.status === "running");
+  if (activeJobs.length === 0) {
     return;
   }
 
-  for (const job of removedJobs) {
-    const stillRunning = job.status === "queued" || job.status === "running";
-    if (!stillRunning) {
-      continue;
-    }
+  for (const job of activeJobs) {
     try {
       terminateProcessTree(job.pid ?? Number.NaN);
     } catch {
@@ -65,18 +63,21 @@ function cleanupSessionJobs(cwd, sessionId) {
 
   saveState(workspaceRoot, {
     ...state,
-    jobs: state.jobs.filter((job) => job.sessionId !== sessionId)
+    jobs: state.jobs.map((job) =>
+      job.status === "queued" || job.status === "running"
+        ? { ...job, status: "cancelled", phase: "cancelled", pid: null }
+        : job
+    )
   });
 }
 
-function handleSessionStart(input) {
-  appendEnvVar(SESSION_ID_ENV, input.session_id);
+function handleSessionStart() {
   appendEnvVar(PLUGIN_DATA_ENV, process.env[PLUGIN_DATA_ENV]);
 }
 
 function handleSessionEnd(input) {
   const cwd = input.cwd || process.cwd();
-  cleanupSessionJobs(cwd, input.session_id || process.env[SESSION_ID_ENV]);
+  cleanupRunningJobs(cwd);
 }
 
 async function main() {
@@ -84,7 +85,7 @@ async function main() {
   const eventName = process.argv[2] ?? input.hook_event_name ?? "";
 
   if (eventName === "SessionStart") {
-    handleSessionStart(input);
+    handleSessionStart();
     return;
   }
 

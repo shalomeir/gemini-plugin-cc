@@ -5,23 +5,19 @@ import path from "node:path";
 
 import { resolveWorkspaceRoot } from "./workspace.mjs";
 
-const STATE_VERSION = 1;
 const PLUGIN_DATA_ENV = "CLAUDE_PLUGIN_DATA";
 const FALLBACK_STATE_ROOT_DIR = path.join(os.tmpdir(), "gemini-companion");
 const STATE_FILE_NAME = "state.json";
 const JOBS_DIR_NAME = "jobs";
-const MAX_JOBS = 50;
+// Gemini CLI is one-shot — no persistent sessions, so job history is short-lived
+const MAX_JOBS = 10;
 
 function nowIso() {
   return new Date().toISOString();
 }
 
 function defaultState() {
-  return {
-    version: STATE_VERSION,
-    config: {},
-    jobs: []
-  };
+  return { jobs: [] };
 }
 
 export function resolveStateDir(cwd) {
@@ -63,11 +59,6 @@ export function loadState(cwd) {
     const parsed = JSON.parse(fs.readFileSync(stateFile, "utf8"));
     return {
       ...defaultState(),
-      ...parsed,
-      config: {
-        ...defaultState().config,
-        ...(parsed.config ?? {})
-      },
       jobs: Array.isArray(parsed.jobs) ? parsed.jobs : []
     };
   } catch {
@@ -91,14 +82,7 @@ export function saveState(cwd, state) {
   const previousJobs = loadState(cwd).jobs;
   ensureStateDir(cwd);
   const nextJobs = pruneJobs(state.jobs ?? []);
-  const nextState = {
-    version: STATE_VERSION,
-    config: {
-      ...defaultState().config,
-      ...(state.config ?? {})
-    },
-    jobs: nextJobs
-  };
+  const nextState = { jobs: nextJobs };
 
   const retainedIds = new Set(nextJobs.map((job) => job.id));
   for (const job of previousJobs) {
@@ -146,19 +130,6 @@ export function upsertJob(cwd, jobPatch) {
 
 export function listJobs(cwd) {
   return loadState(cwd).jobs;
-}
-
-export function setConfig(cwd, key, value) {
-  return updateState(cwd, (state) => {
-    state.config = {
-      ...state.config,
-      [key]: value
-    };
-  });
-}
-
-export function getConfig(cwd) {
-  return loadState(cwd).config;
 }
 
 export function writeJobFile(cwd, jobId, payload) {
