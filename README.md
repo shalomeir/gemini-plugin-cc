@@ -326,6 +326,25 @@ Gemini CLI supports multiple authentication methods:
 
 Your authentication state is shared with your local Gemini CLI installation.
 
+### Model Selection
+
+Each command has a default model. You can override it with `--model` (`-m`):
+
+```bash
+/gemini:media -m gemini-2.5-pro @photo.jpg describe this image
+/gemini:review -m gemini-3-flash-preview
+```
+
+| Command | Default Model | Notes |
+|---------|--------------|-------|
+| `/gemini:review` | Gemini CLI default (auto-routed) | Uses Gemini CLI's built-in model routing |
+| `/gemini:ask` | Gemini CLI default (auto-routed) | Uses Gemini CLI's built-in model routing |
+| `/gemini:ui-review` | `gemini-3-flash-preview` | Flash handles multimodal vision well |
+| `/gemini:media` | `gemini-3-flash-preview` | Flash handles image/audio/video well |
+| `/gemini:analyze` | Gemini CLI default (auto-routed) | Uses Gemini CLI's built-in model routing |
+
+Commands without an explicit default rely on Gemini CLI's automatic model routing, which typically routes through `gemini-2.5-flash-lite` for initial processing and `gemini-3-flash-preview` for the main response.
+
 ## Differences from codex-plugin-cc
 
 This plugin closely mirrors the architecture and command structure of [codex-plugin-cc](https://github.com/openai/codex-plugin-cc), but there are key structural differences driven by how Gemini CLI works compared to Codex:
