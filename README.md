@@ -42,13 +42,6 @@ Then run:
 /gemini:setup
 ```
 
-**For local development**, you can also load the plugin directly:
-
-```bash
-git clone https://github.com/shalomeir/gemini-plugin-cc.git
-claude --plugin-dir ./gemini-plugin-cc
-```
-
 `/gemini:setup` will tell you whether Gemini CLI is ready. If Gemini CLI is missing and npm is available, it can offer to install it for you.
 
 If you prefer to install Gemini CLI yourself, use:
@@ -69,12 +62,26 @@ This launches the interactive Gemini CLI to complete authentication. Alternative
 export GEMINI_API_KEY=your-api-key
 ```
 
-After install, you should see the slash commands listed below. One simple first run is:
+After install, you should see:
+
+- the slash commands listed below
+- the `gemini:gemini-rescue` subagent in `/agents`
+
+One simple first run is:
 
 ```bash
 /gemini:review --background
 /gemini:status
 /gemini:result
+```
+
+### Local development
+
+For local development, you can load the plugin directly without the marketplace:
+
+```bash
+git clone https://github.com/shalomeir/gemini-plugin-cc.git
+claude --plugin-dir ./gemini-plugin-cc
 ```
 
 ## Usage
