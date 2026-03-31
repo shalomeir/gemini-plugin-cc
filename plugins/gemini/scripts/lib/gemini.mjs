@@ -70,10 +70,6 @@ export function runGeminiSync(cwd, prompt, options = {}) {
     args.push("--sandbox");
   }
 
-  if (options.allFiles) {
-    args.push("--all-files");
-  }
-
   if (options.includeDirectories) {
     args.push("--include-directories", options.includeDirectories);
   }
