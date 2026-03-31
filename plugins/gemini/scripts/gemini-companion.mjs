@@ -320,7 +320,6 @@ async function executeUiReviewRun(request) {
 
   const result = await runGeminiStream(request.cwd, fullPrompt, {
     model: request.model,
-    allFiles: true,
     onProgress: request.onProgress
   });
 
@@ -507,7 +506,6 @@ async function executeAnalyzeRun(request) {
 
   const geminiOptions = {
     model: request.model,
-    allFiles: true,
     onProgress: request.onProgress
   };
 
