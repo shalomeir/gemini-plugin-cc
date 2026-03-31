@@ -326,6 +326,33 @@ Gemini CLI supports multiple authentication methods:
 
 Your authentication state is shared with your local Gemini CLI installation.
 
+### Model Selection
+
+Each command has a default model. You can override it with `--model` (`-m`):
+
+```bash
+/gemini:media -m gemini-2.5-pro @photo.jpg describe this image
+/gemini:review -m gemini-3-flash-preview
+```
+
+| Command | Default Model | Notes |
+|---------|--------------|-------|
+| `/gemini:review` | Gemini CLI default (auto-routed) | Uses Gemini CLI's built-in model routing |
+| `/gemini:ask` | Gemini CLI default (auto-routed) | Uses Gemini CLI's built-in model routing |
+| `/gemini:ui-review` | `gemini-3-flash-preview` | Flash model for multimodal vision |
+| `/gemini:media` | `gemini-3-flash-preview` | Flash model for image/audio/video |
+| `/gemini:analyze` | Gemini CLI default (auto-routed) | Uses Gemini CLI's built-in model routing |
+
+Commands without an explicit default rely on Gemini CLI's automatic model routing.
+
+For multimodal commands (`ui-review`, `media`), the default model can be changed without editing code:
+
+```bash
+export GEMINI_MULTIMODAL_MODEL=gemini-3.5-flash  # use a newer flash model
+```
+
+Priority: `--model` flag > `GEMINI_MULTIMODAL_MODEL` env var > built-in default (`gemini-3-flash-preview`).
+
 ## Differences from codex-plugin-cc
 
 This plugin closely mirrors the architecture and command structure of [codex-plugin-cc](https://github.com/openai/codex-plugin-cc), but there are key structural differences driven by how Gemini CLI works compared to Codex:
@@ -374,6 +401,7 @@ Optional environment variables:
 |----------|-------------|
 | `GEMINI_API_KEY` | Gemini API key (alternative to interactive login) |
 | `GOOGLE_API_KEY` | Google API key (for Vertex AI) |
+| `GEMINI_MULTIMODAL_MODEL` | Default model for multimodal commands (`ui-review`, `media`). Defaults to `gemini-3-flash-preview` |
 
 ## Project Structure
 
