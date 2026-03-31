@@ -1,0 +1,25 @@
+---
+description: Analyze image, audio, or video files with Gemini
+argument-hint: '<@file.png|mp3|mp4> [question or instruction]'
+disable-model-invocation: true
+allowed-tools: Bash(node:*), AskUserQuestion
+---
+
+Analyze media files (images, audio, video) using Gemini's native multimodal capabilities.
+
+Raw slash-command arguments:
+`$ARGUMENTS`
+
+Supported file types:
+- Images: PNG, JPG, JPEG, GIF, WEBP
+- Audio: MP3 (WAV is not supported by the API)
+- Video: MP4, MOV
+- Documents: PDF
+
+Foreground flow:
+- Run:
+```bash
+node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" media $ARGUMENTS
+```
+- Return the command stdout verbatim, exactly as-is.
+- Do not paraphrase or add commentary.

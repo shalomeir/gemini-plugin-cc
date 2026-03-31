@@ -105,6 +105,7 @@ export function runGeminiSync(cwd, prompt, options = {}) {
       status: result.status,
       response: parsed.response ?? "",
       stats: parsed.stats ?? null,
+      sessionId: parsed.session_id ?? null,
       error: parsed.error ?? null,
       stderr: result.stderr.trim()
     };
@@ -157,6 +158,7 @@ export function runGeminiStream(cwd, prompt, options = {}) {
     const events = [];
     let finalResponse = "";
     let finalStats = null;
+    let sessionId = null;
     let stderrChunks = [];
 
     const rl = createInterface({ input: child.stdout });
@@ -201,9 +203,15 @@ export function runGeminiStream(cwd, prompt, options = {}) {
           }
         }
 
-        // Capture final stats
-        if (eventType === "result" && event.stats) {
-          finalStats = event.stats;
+        // Capture final stats and session ID
+        if (eventType === "result") {
+          if (event.stats) finalStats = event.stats;
+          if (event.session_id) sessionId = event.session_id;
+        }
+
+        // session_id can also appear at top level of any event
+        if (event.session_id && !sessionId) {
+          sessionId = event.session_id;
         }
 
         // Handle errors
@@ -230,6 +238,7 @@ export function runGeminiStream(cwd, prompt, options = {}) {
         status: code ?? 0,
         response: finalResponse,
         stats: finalStats,
+        sessionId,
         events,
         error: code !== 0 ? { message: stderr.trim() || `Exit code ${code}` } : null,
         stderr: stderr.trim(),

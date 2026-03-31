@@ -8,6 +8,9 @@ This is an **unofficial, community-driven** adaptation of [codex-plugin-cc](http
 
 - `/gemini:review` for a Gemini-powered code review
 - `/gemini:ask` to ask Gemini a question or delegate a task
+- `/gemini:ui-review` to review UI screenshots against code implementation
+- `/gemini:media` to analyze images, audio, and video files
+- `/gemini:analyze` to analyze the codebase using Gemini's large context window (1M+ tokens)
 - `/gemini:rescue`, `/gemini:status`, `/gemini:result`, and `/gemini:cancel` to delegate work and manage background jobs
 - `/gemini:setup` to check Gemini CLI readiness and authentication
 
@@ -131,6 +134,69 @@ Examples:
 /gemini:ask suggest improvements for the error handling in src/api/
 ```
 
+### `/gemini:ui-review`
+
+Reviews UI screenshots against the current code implementation using Gemini's native vision capabilities.
+
+Use it when you want to:
+
+- compare a design mockup or screenshot with your component code
+- check visual accuracy, layout, typography, and accessibility
+- review responsive breakpoints and cross-browser concerns
+
+It supports `--background`.
+
+Examples:
+
+```bash
+/gemini:ui-review @screenshot.png review the header component
+/gemini:ui-review @design.png @current.png compare these two states
+/gemini:ui-review --background @full-page.png review all components
+```
+
+### `/gemini:media`
+
+Analyzes media files (images, audio, video, PDF) using Gemini's native multimodal capabilities.
+
+Supported file types:
+
+- **Images**: PNG, JPG, JPEG, GIF, WEBP
+- **Audio**: MP3 (WAV is not supported)
+- **Video**: MP4, MOV
+- **Documents**: PDF
+
+Use the `@file` syntax to reference files. Gemini processes media natively — no 3rd-party preprocessing (ffmpeg, whisper, etc.) is needed.
+
+Examples:
+
+```bash
+/gemini:media @photo.jpg describe this image
+/gemini:media @recording.mp3 transcribe and summarize this audio
+/gemini:media @demo.mp4 describe what happens in this video
+/gemini:media @document.pdf summarize this document
+```
+
+### `/gemini:analyze`
+
+Analyzes the codebase or a subset of it using Gemini's large context window (1M+ tokens).
+
+Use it when you want Gemini to:
+
+- analyze overall architecture and patterns
+- find dependencies and coupling between modules
+- review code quality across the entire project
+- understand a large codebase holistically
+
+It supports `--scope <path>` and `--background`.
+
+Examples:
+
+```bash
+/gemini:analyze what are the main architectural patterns?
+/gemini:analyze --scope src/api review the API layer
+/gemini:analyze --background find all circular dependencies
+```
+
 ### `/gemini:rescue`
 
 Hands the current task context to Gemini through the `gemini:gemini-rescue` subagent for a second opinion.
@@ -212,6 +278,27 @@ If Gemini CLI is missing and npm is available, it can offer to install it for yo
 /gemini:ask investigate why the build is failing in CI
 ```
 
+### Review UI Against Screenshots
+
+```bash
+/gemini:ui-review @screenshot.png check the login page matches the design
+```
+
+### Analyze Media Files
+
+```bash
+/gemini:media @recording.mp3 what topics are discussed?
+/gemini:media @demo.mp4 summarize the user flow shown
+```
+
+### Deep Codebase Analysis
+
+```bash
+/gemini:analyze --background review the entire codebase architecture
+/gemini:status
+/gemini:result
+```
+
 ### Start Something Long-Running
 
 ```bash
@@ -255,9 +342,9 @@ Codex offers a separate `/codex:adversarial-review` command for steerable challe
 
 Codex can block Claude's response via a `Stop` hook if its review finds issues, creating a review-then-fix loop. This plugin does not implement a Stop hook because Gemini's headless mode is not optimized for the quick, targeted gate-style reviews this feature requires.
 
-### No session resume
+### Session resume
 
-Codex maintains thread IDs so you can `codex resume <session-id>` to continue a previous task. Gemini CLI's headless mode does not support session persistence, so each invocation starts fresh.
+Codex maintains thread IDs so you can `codex resume <session-id>` to continue a previous task. Gemini CLI supports `gemini --resume <session-id>` for session continuity. This plugin captures session IDs from Gemini responses and stores them with job results — you can see them in `/gemini:result` output.
 
 ### `/gemini:ask` instead of `/codex:rescue`
 

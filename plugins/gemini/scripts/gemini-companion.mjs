@@ -4,13 +4,16 @@
  * Gemini Companion — main CLI entry point.
  *
  * Subcommands:
- *   setup    — check Gemini CLI readiness
- *   review   — run a Gemini code review
- *   task     — delegate a task to Gemini
+ *   setup     — check Gemini CLI readiness
+ *   review    — run a Gemini code review
+ *   task      — delegate a task to Gemini
+ *   ui-review — review UI screenshots against code
+ *   media     — analyze image, audio, or video files
+ *   analyze   — analyze codebase with large context window
  *   task-worker — background task runner
- *   status   — show job status
- *   result   — show job result
- *   cancel   — cancel a running job
+ *   status    — show job status
+ *   result    — show job result
+ *   cancel    — cancel a running job
  */
 
 import { spawn } from "node:child_process";
@@ -61,7 +64,10 @@ import {
   renderJobStatusReport,
   renderSetupReport,
   renderStatusReport,
-  renderTaskResult
+  renderTaskResult,
+  renderUiReviewResult,
+  renderMediaResult,
+  renderAnalyzeResult
 } from "./lib/render.mjs";
 
 const ROOT_DIR = path.resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -73,6 +79,9 @@ function printUsage() {
       "  gemini-companion setup [--json]",
       "  gemini-companion review [--wait|--background] [--base <ref>] [--scope <auto|working-tree|branch>]",
       "  gemini-companion task [--background] [--model <model>] [--sandbox] [prompt]",
+      "  gemini-companion ui-review [--background] [--model <model>] <@screenshot.png> [instructions]",
+      "  gemini-companion media [--model <model>] <@file.png|mp3|mp4> [question]",
+      "  gemini-companion analyze [--background] [--scope <path>] [focus area or question]",
       "  gemini-companion status [job-id] [--all]",
       "  gemini-companion result [job-id] [--json]",
       "  gemini-companion cancel [job-id] [--json]"
@@ -226,7 +235,8 @@ async function executeReviewRun(request) {
       response: result.response,
       stderr: result.stderr,
       stats: result.stats
-    }
+    },
+    sessionId: result.sessionId
   };
 
   const rendered = renderReviewResult(result, {
@@ -281,6 +291,320 @@ async function handleReview(argv) {
   }
 }
 
+// ── UI Review ───────────────────────────────────────────────────────
+
+function buildUiReviewPrompt(fileRefs, diffContext, extraInstructions) {
+  const template = loadPromptTemplate(ROOT_DIR, "ui-review");
+  return interpolateTemplate(template, {
+    FILE_REFERENCES: fileRefs || "",
+    DIFF_CONTEXT: diffContext || "",
+    EXTRA_INSTRUCTIONS: extraInstructions || ""
+  });
+}
+
+async function executeUiReviewRun(request) {
+  ensureGeminiReady(request.cwd);
+
+  if (!request.prompt) {
+    throw new Error("Provide screenshot file(s) and optional instructions. Example: @screenshot.png review this component");
+  }
+
+  if (request.onProgress) {
+    request.onProgress({ message: "Running Gemini UI review...", phase: "starting" });
+  }
+
+  // Build prompt with the ui-review template, embedding user's file refs and instructions
+  const fileRefs = request.fileRefs || "";
+  const diffContext = request.diffContext || "";
+  const fullPrompt = buildUiReviewPrompt(fileRefs, diffContext, request.prompt);
+
+  const result = await runGeminiStream(request.cwd, fullPrompt, {
+    model: request.model,
+    allFiles: true,
+    onProgress: request.onProgress
+  });
+
+  const payload = {
+    status: result.status,
+    response: result.response,
+    stats: result.stats,
+    sessionId: result.sessionId
+  };
+
+  const rendered = renderUiReviewResult(result);
+
+  return {
+    exitStatus: result.status,
+    payload,
+    rendered,
+    summary: firstMeaningfulLine(result.response, "UI review completed."),
+    jobTitle: "Gemini UI Review",
+    jobClass: "ui-review"
+  };
+}
+
+async function handleUiReview(argv) {
+  const { options, positionals } = parseCommandInput(argv, {
+    valueOptions: ["model", "cwd", "scope"],
+    booleanOptions: ["json", "background"],
+    aliasMap: { m: "model" }
+  });
+
+  const cwd = resolveCommandCwd(options);
+  const workspaceRoot = resolveCommandWorkspace(options);
+  const rawPrompt = positionals.join(" ");
+
+  if (options.background) {
+    // Reuse the task-worker mechanism for background execution
+    const job = createCompanionJob({
+      prefix: "uireview",
+      kind: "ui-review",
+      title: "Gemini UI Review",
+      workspaceRoot,
+      jobClass: "ui-review",
+      summary: shorten(rawPrompt)
+    });
+
+    const logFile = createJobLogFile(workspaceRoot, job.id, job.title);
+    appendLogLine(logFile, "Queued for background execution.");
+
+    const child = spawnDetachedTaskWorker(cwd, job.id);
+    const queuedRecord = {
+      ...job,
+      status: "queued",
+      phase: "queued",
+      pid: child.pid ?? null,
+      logFile,
+      request: { cwd, model: options.model, prompt: rawPrompt, kind: "ui-review" }
+    };
+    writeJobFile(workspaceRoot, job.id, queuedRecord);
+    upsertJob(workspaceRoot, queuedRecord);
+
+    const payload = { jobId: job.id, status: "queued", title: job.title };
+    const rendered = `Gemini UI review started in the background as ${job.id}. Check \`/gemini:status ${job.id}\` for progress.\n`;
+    outputCommandResult(payload, rendered, options.json);
+    return;
+  }
+
+  const job = createCompanionJob({
+    prefix: "uireview",
+    kind: "ui-review",
+    title: "Gemini UI Review",
+    workspaceRoot,
+    jobClass: "ui-review",
+    summary: shorten(rawPrompt)
+  });
+
+  const { logFile, progress } = createTrackedProgress(job, { stderr: !options.json });
+  const execution = await runTrackedJob(job, () =>
+    executeUiReviewRun({
+      cwd,
+      model: options.model,
+      prompt: rawPrompt,
+      onProgress: progress
+    }),
+    { logFile }
+  );
+
+  outputResult(options.json ? execution.payload : execution.rendered, options.json);
+  if (execution.exitStatus !== 0) {
+    process.exitCode = execution.exitStatus;
+  }
+}
+
+// ── Media ───────────────────────────────────────────────────────────
+
+async function executeMediaRun(request) {
+  ensureGeminiReady(request.cwd);
+
+  if (!request.prompt) {
+    throw new Error("Provide a media file reference and optional instructions. Example: @photo.jpg describe this image");
+  }
+
+  if (request.onProgress) {
+    request.onProgress({ message: "Running Gemini media analysis...", phase: "starting" });
+  }
+
+  const result = await runGeminiStream(request.cwd, request.prompt, {
+    model: request.model,
+    onProgress: request.onProgress
+  });
+
+  const payload = {
+    status: result.status,
+    response: result.response,
+    stats: result.stats,
+    sessionId: result.sessionId
+  };
+
+  const rendered = renderMediaResult(result);
+
+  return {
+    exitStatus: result.status,
+    payload,
+    rendered,
+    summary: firstMeaningfulLine(result.response, "Media analysis completed."),
+    jobTitle: "Gemini Media Analysis",
+    jobClass: "media"
+  };
+}
+
+async function handleMedia(argv) {
+  const { options, positionals } = parseCommandInput(argv, {
+    valueOptions: ["model", "cwd"],
+    booleanOptions: ["json"],
+    aliasMap: { m: "model" }
+  });
+
+  const cwd = resolveCommandCwd(options);
+  const workspaceRoot = resolveCommandWorkspace(options);
+  const rawPrompt = positionals.join(" ");
+
+  const job = createCompanionJob({
+    prefix: "media",
+    kind: "media",
+    title: "Gemini Media Analysis",
+    workspaceRoot,
+    jobClass: "media",
+    summary: shorten(rawPrompt)
+  });
+
+  const { logFile, progress } = createTrackedProgress(job, { stderr: !options.json });
+  const execution = await runTrackedJob(job, () =>
+    executeMediaRun({
+      cwd,
+      model: options.model,
+      prompt: rawPrompt,
+      onProgress: progress
+    }),
+    { logFile }
+  );
+
+  outputResult(options.json ? execution.payload : execution.rendered, options.json);
+  if (execution.exitStatus !== 0) {
+    process.exitCode = execution.exitStatus;
+  }
+}
+
+// ── Analyze ─────────────────────────────────────────────────────────
+
+function buildAnalyzePrompt(focusArea, extraInstructions) {
+  const template = loadPromptTemplate(ROOT_DIR, "codebase-analyze");
+  return interpolateTemplate(template, {
+    FOCUS_AREA: focusArea || "",
+    EXTRA_INSTRUCTIONS: extraInstructions || ""
+  });
+}
+
+async function executeAnalyzeRun(request) {
+  ensureGeminiReady(request.cwd);
+
+  if (request.onProgress) {
+    request.onProgress({ message: "Running Gemini codebase analysis...", phase: "starting" });
+  }
+
+  const fullPrompt = buildAnalyzePrompt(request.focusArea, request.extraInstructions);
+
+  const geminiOptions = {
+    model: request.model,
+    allFiles: true,
+    onProgress: request.onProgress
+  };
+
+  if (request.scope) {
+    geminiOptions.includeDirectories = request.scope;
+  }
+
+  const result = await runGeminiStream(request.cwd, fullPrompt, geminiOptions);
+
+  const payload = {
+    status: result.status,
+    response: result.response,
+    stats: result.stats,
+    sessionId: result.sessionId
+  };
+
+  const rendered = renderAnalyzeResult(result);
+
+  return {
+    exitStatus: result.status,
+    payload,
+    rendered,
+    summary: firstMeaningfulLine(result.response, "Codebase analysis completed."),
+    jobTitle: "Gemini Codebase Analysis",
+    jobClass: "analyze"
+  };
+}
+
+async function handleAnalyze(argv) {
+  const { options, positionals } = parseCommandInput(argv, {
+    valueOptions: ["model", "cwd", "scope"],
+    booleanOptions: ["json", "background"],
+    aliasMap: { m: "model" }
+  });
+
+  const cwd = resolveCommandCwd(options);
+  const workspaceRoot = resolveCommandWorkspace(options);
+  const rawPrompt = positionals.join(" ");
+
+  if (options.background) {
+    const job = createCompanionJob({
+      prefix: "analyze",
+      kind: "analyze",
+      title: "Gemini Codebase Analysis",
+      workspaceRoot,
+      jobClass: "analyze",
+      summary: shorten(rawPrompt || "Full codebase analysis")
+    });
+
+    const logFile = createJobLogFile(workspaceRoot, job.id, job.title);
+    appendLogLine(logFile, "Queued for background execution.");
+
+    const child = spawnDetachedTaskWorker(cwd, job.id);
+    const queuedRecord = {
+      ...job,
+      status: "queued",
+      phase: "queued",
+      pid: child.pid ?? null,
+      logFile,
+      request: { cwd, model: options.model, prompt: rawPrompt, scope: options.scope, kind: "analyze" }
+    };
+    writeJobFile(workspaceRoot, job.id, queuedRecord);
+    upsertJob(workspaceRoot, queuedRecord);
+
+    const payload = { jobId: job.id, status: "queued", title: job.title };
+    const rendered = `Gemini codebase analysis started in the background as ${job.id}. Check \`/gemini:status ${job.id}\` for progress.\n`;
+    outputCommandResult(payload, rendered, options.json);
+    return;
+  }
+
+  const job = createCompanionJob({
+    prefix: "analyze",
+    kind: "analyze",
+    title: "Gemini Codebase Analysis",
+    workspaceRoot,
+    jobClass: "analyze",
+    summary: shorten(rawPrompt || "Full codebase analysis")
+  });
+
+  const { logFile, progress } = createTrackedProgress(job, { stderr: !options.json });
+  const execution = await runTrackedJob(job, () =>
+    executeAnalyzeRun({
+      cwd,
+      model: options.model,
+      focusArea: rawPrompt,
+      scope: options.scope,
+      onProgress: progress
+    }),
+    { logFile }
+  );
+
+  outputResult(options.json ? execution.payload : execution.rendered, options.json);
+  if (execution.exitStatus !== 0) {
+    process.exitCode = execution.exitStatus;
+  }
+}
+
 // ── Task ─────────────────────────────────────────────────────────────
 
 async function executeTaskRun(request) {
@@ -304,7 +628,8 @@ async function executeTaskRun(request) {
   const payload = {
     status: result.status,
     response: result.response,
-    stats: result.stats
+    stats: result.stats,
+    sessionId: result.sessionId
   };
 
   return {
@@ -432,9 +757,24 @@ async function handleTaskWorker(argv) {
     { logFile: storedJob.logFile ?? null }
   );
 
+  // Dispatch to the correct executor based on stored job kind
+  const kind = request.kind ?? storedJob.kind ?? "task";
+  const executorMap = {
+    task: () => executeTaskRun({ ...request, onProgress: progress }),
+    "ui-review": () => executeUiReviewRun({ ...request, onProgress: progress }),
+    analyze: () => executeAnalyzeRun({
+      ...request,
+      focusArea: request.prompt,
+      scope: request.scope,
+      onProgress: progress
+    })
+  };
+
+  const executor = executorMap[kind] ?? executorMap.task;
+
   await runTrackedJob(
     { ...storedJob, workspaceRoot, logFile },
-    () => executeTaskRun({ ...request, onProgress: progress }),
+    executor,
     { logFile }
   );
 }
@@ -561,6 +901,15 @@ async function main() {
       break;
     case "task":
       await handleTask(argv);
+      break;
+    case "ui-review":
+      await handleUiReview(argv);
+      break;
+    case "media":
+      await handleMedia(argv);
+      break;
+    case "analyze":
+      await handleAnalyze(argv);
       break;
     case "task-worker":
       await handleTaskWorker(argv);

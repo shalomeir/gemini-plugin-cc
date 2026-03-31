@@ -195,6 +195,11 @@ export function renderStoredJobResult(job, storedJob) {
     lines.push(`Summary: ${job.summary}`);
   }
 
+  const sessionId = storedJob?.result?.sessionId ?? storedJob?.sessionId ?? null;
+  if (sessionId) {
+    lines.push(`Session: ${sessionId} (resume with \`gemini --resume ${sessionId}\`)`);
+  }
+
   if (job.errorMessage) {
     lines.push("", job.errorMessage);
   } else if (storedJob?.errorMessage) {
@@ -204,6 +209,33 @@ export function renderStoredJobResult(job, storedJob) {
   }
 
   return `${lines.join("\n").trimEnd()}\n`;
+}
+
+export function renderUiReviewResult(result) {
+  if (result.response) {
+    return result.response.endsWith("\n") ? result.response : `${result.response}\n`;
+  }
+
+  const message = result.error?.message ?? "Gemini did not return a UI review response.";
+  return `${message}\n`;
+}
+
+export function renderMediaResult(result) {
+  if (result.response) {
+    return result.response.endsWith("\n") ? result.response : `${result.response}\n`;
+  }
+
+  const message = result.error?.message ?? "Gemini did not return a media analysis response.";
+  return `${message}\n`;
+}
+
+export function renderAnalyzeResult(result) {
+  if (result.response) {
+    return result.response.endsWith("\n") ? result.response : `${result.response}\n`;
+  }
+
+  const message = result.error?.message ?? "Gemini did not return a codebase analysis response.";
+  return `${message}\n`;
 }
 
 export function renderCancelReport(job) {
