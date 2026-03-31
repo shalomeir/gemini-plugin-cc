@@ -319,7 +319,7 @@ async function executeUiReviewRun(request) {
   const fullPrompt = buildUiReviewPrompt(fileRefs, diffContext, request.prompt);
 
   const result = await runGeminiStream(request.cwd, fullPrompt, {
-    model: request.model,
+    model: request.model || "gemini-3-flash-preview",
     onProgress: request.onProgress
   });
 
@@ -425,7 +425,7 @@ async function executeMediaRun(request) {
   }
 
   const result = await runGeminiStream(request.cwd, request.prompt, {
-    model: request.model,
+    model: request.model || "gemini-3-flash-preview",
     onProgress: request.onProgress
   });
 
