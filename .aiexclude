@@ -1,0 +1,50 @@
+# ============================================
+# AI Exclude — files AI tools must not access
+# ============================================
+# Syntax: same as .gitignore
+# Canonical file: .aiexclude (Gemini, JetBrains AI)
+# Symlinked to: .cursorignore, .codeiumignore,
+#   .copilotignore, .rooignore, .clineignore
+
+# ============================================
+# Secrets & credentials
+# ============================================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+.sec/
+credentials.json
+credentials.*.json
+secret.json
+secrets.json
+**/service-account*.json
+
+# ============================================
+# SSH & auth
+# ============================================
+**/id_rsa
+**/id_dsa
+**/id_ed25519
+**/.ssh/
+
+# ============================================
+# Infrastructure secrets
+# ============================================
+**/terraform.tfvars
+**/terraform.tfvars.json
+**/*.tfstate
+**/*.tfstate.*
+**/vault-config.*
+
+# ============================================
+# Local-only configs with secrets
+# ============================================
+local.properties
+.mcp.json
+.claude/settings.local.json

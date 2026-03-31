@@ -1,0 +1,31 @@
+{
+  "ignorePatterns": [
+    ".env",
+    ".env.*",
+    "!.env.example",
+    "*.pem",
+    "*.key",
+    "*.p12",
+    "*.pfx",
+    "*.crt",
+    "*.cer",
+    ".sec/",
+    "credentials.json",
+    "credentials.*.json",
+    "secret.json",
+    "secrets.json",
+    "**/service-account*.json",
+    "**/id_rsa",
+    "**/id_dsa",
+    "**/id_ed25519",
+    "**/.ssh/",
+    "**/terraform.tfvars",
+    "**/terraform.tfvars.json",
+    "**/*.tfstate",
+    "**/*.tfstate.*",
+    "**/vault-config.*",
+    "local.properties",
+    ".mcp.json",
+    ".claude/settings.local.json"
+  ]
+}
