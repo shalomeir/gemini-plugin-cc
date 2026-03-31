@@ -5,8 +5,8 @@ This file provides guidance to AI coding agents (Claude Code, Codex, Gemini, etc
 ## Project Overview
 
 - **Project**: gemini-plugin-cc
-- **Description**: TBD
-- **Language**: TBD
+- **Description**: Claude Code plugin to use Gemini CLI for code review and task delegation
+- **Language**: JavaScript (Node.js ESM)
 
 ## Coding Standards
 
