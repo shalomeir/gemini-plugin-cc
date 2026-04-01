@@ -26,6 +26,7 @@ In Claude Code, run:
 ```bash
 /plugin marketplace add shalomeir/gemini-plugin-cc
 /plugin install gemini@google-gemini
+/reload-plugins
 ```
 
 Then run `/gemini:setup` to check readiness. If Gemini CLI is missing and npm is available, it can offer to install it for you.
