@@ -225,12 +225,6 @@ Examples:
 /gemini:status task-abc123
 ```
 
-Use it to:
-
-- check progress on background work
-- see the latest completed job
-- confirm whether a task is still running
-
 ### `/gemini:result`
 
 Shows the final stored Gemini output for a finished job.
@@ -270,12 +264,6 @@ If Gemini CLI is missing and npm is available, it can offer to install it for yo
 
 ```bash
 /gemini:ask is this the right approach for handling concurrent requests?
-```
-
-### Hand A Problem To Gemini
-
-```bash
-/gemini:ask investigate why the build is failing in CI
 ```
 
 ### Review UI Against Screenshots
@@ -343,122 +331,31 @@ Each command has a default model. You can override it with `--model` (`-m`):
 | `/gemini:media` | `gemini-3-flash-preview` | Flash model for image/audio/video |
 | `/gemini:analyze` | Gemini CLI default (auto-routed) | Uses Gemini CLI's built-in model routing |
 
-Commands without an explicit default rely on Gemini CLI's automatic model routing.
-
-For multimodal commands (`ui-review`, `media`), the default model can be changed without editing code:
+For multimodal commands (`ui-review`, `media`), the default model can be changed via environment variable:
 
 ```bash
-export GEMINI_MULTIMODAL_MODEL=gemini-3.5-flash  # use a newer flash model
+export GEMINI_MULTIMODAL_MODEL=gemini-3.5-flash
 ```
 
-Priority: `--model` flag > `GEMINI_MULTIMODAL_MODEL` env var > built-in default (`gemini-3-flash-preview`).
-
-## Differences from codex-plugin-cc
-
-This plugin closely mirrors the architecture and command structure of [codex-plugin-cc](https://github.com/openai/codex-plugin-cc), but there are key structural differences driven by how Gemini CLI works compared to Codex:
-
-### No app-server or broker
-
-Codex uses a persistent [app-server](https://developers.openai.com/codex/app-server/) with JSON-RPC over a Unix socket, managed by a broker process that starts on session init and shuts down on session end. Gemini CLI has no equivalent persistent server mode. Instead, this plugin uses **one-shot headless invocations** (`gemini -p "prompt" --output-format stream-json -y`) for each request. This is simpler but means there is no shared runtime between calls.
-
-### No adversarial-review
-
-Codex offers a separate `/codex:adversarial-review` command for steerable challenge reviews. This plugin uses a single `/gemini:review` command with a comprehensive review prompt. An adversarial mode could be added in the future.
-
-### No review gate (Stop hook)
-
-Codex can block Claude's response via a `Stop` hook if its review finds issues, creating a review-then-fix loop. This plugin does not implement a Stop hook because Gemini's headless mode is not optimized for the quick, targeted gate-style reviews this feature requires.
-
-### Session resume
-
-Codex maintains thread IDs so you can `codex resume <session-id>` to continue a previous task. Gemini CLI supports `gemini --resume <session-id>` for session continuity. This plugin captures session IDs from Gemini responses and stores them with job results — you can see them in `/gemini:result` output.
-
-### `/gemini:ask` instead of `/codex:rescue`
-
-Codex's rescue command delegates through a subagent with session continuity and model selection (`--model`, `--effort`, `--resume`, `--fresh`). This plugin's `/gemini:ask` is a simpler task delegation command. A separate `/gemini:rescue` exists as a subagent-based forwarder for context-heavy delegation.
-
-### Stream-JSON instead of JSON-RPC
-
-Codex streams responses through a JSON-RPC socket connection. Gemini CLI uses [NDJSON streaming](https://google-gemini.github.io/gemini-cli/docs/cli/headless.html) (`--output-format stream-json`) with line-delimited JSON events. The event protocol is different but the user experience is similar.
-
-### Simplified internals
-
-Because Gemini CLI is one-shot with no persistent runtime, several codex-plugin-cc patterns were intentionally simplified:
-
-- **No session tracking**: Codex groups jobs by session ID for lifecycle management. Since Gemini CLI has no sessions, this plugin skips session IDs entirely — on session end, all running jobs are terminated unconditionally.
-- **No status polling**: Codex's `/codex:status --wait` polls for completion. Since there is no persistent process to poll, `/gemini:status` returns the current snapshot immediately.
-- **Reduced job history**: Codex keeps 50 jobs; this plugin keeps 10. One-shot invocations accumulate history quickly with less value.
-- **No state versioning or config store**: Codex prepares for schema migration and per-project config. This plugin's state is just a flat job list — simple enough that versioning adds no value.
-- **Lighter progress tracking**: Phase updates go to the state index only, not double-written to individual job files on every event. Final state is written once on completion.
-
-The background task execution pattern (`--background` with detached workers) is retained — it is genuinely useful for long-running operations like code reviews.
-
-## Environment Setup
-
-Optional environment variables:
-
-| Variable | Description |
-|----------|-------------|
-| `GEMINI_API_KEY` | Gemini API key (alternative to interactive login) |
-| `GOOGLE_API_KEY` | Google API key (for Vertex AI) |
-| `GEMINI_MULTIMODAL_MODEL` | Default model for multimodal commands (`ui-review`, `media`). Defaults to `gemini-3-flash-preview` |
-
-## Project Structure
-
-```
-gemini-plugin-cc/
-├── .claude-plugin/          # Marketplace metadata
-├── plugins/gemini/          # Plugin root
-│   ├── .claude-plugin/      # Plugin metadata
-│   ├── agents/              # Subagent definitions
-│   ├── commands/            # Slash command definitions
-│   ├── hooks/               # Session lifecycle hooks
-│   ├── prompts/             # Prompt templates
-│   ├── schemas/             # Output schemas
-│   ├── scripts/             # Core runtime (Node.js ESM)
-│   │   ├── gemini-companion.mjs
-│   │   ├── session-lifecycle-hook.mjs
-│   │   └── lib/             # Internal libraries
-│   └── skills/              # Internal skill definitions
-├── tests/                   # Test files
-└── package.json
-```
+Priority: `--model` flag > `GEMINI_MULTIMODAL_MODEL` env var > built-in default.
 
 ## FAQ
 
 ### Do I need a separate Google account for this plugin?
 
-If you have already authenticated with Gemini CLI on this machine, that authentication works immediately. This plugin uses your local Gemini CLI authentication state.
-
-If you haven't used Gemini CLI yet, you'll need either a Google account or a [Google AI Studio API key](https://aistudio.google.com/apikey). Run `/gemini:setup` to check readiness, and use `!gemini` for interactive login if needed.
+If you have already authenticated with Gemini CLI on this machine, that authentication works immediately. Run `/gemini:setup` to check readiness, and use `!gemini` for interactive login if needed.
 
 ### Does the plugin use a separate Gemini runtime?
 
-No. This plugin delegates through your local [Gemini CLI](https://github.com/google-gemini/gemini-cli) installation.
-
-That means:
-
-- it uses the same Gemini CLI install you would use directly
-- it uses the same local authentication state
-- it uses the same repository checkout and machine-local environment
+No. This plugin delegates through your local [Gemini CLI](https://github.com/google-gemini/gemini-cli) installation. It uses the same install, authentication state, and machine-local environment.
 
 ### Is this an official Google plugin?
 
-**No.** This is an unofficial, community-driven project. It is an adaptation of OpenAI's [codex-plugin-cc](https://github.com/openai/codex-plugin-cc) for Gemini CLI. It is not affiliated with, endorsed by, or supported by Google.
-
-### Where can I get Gemini CLI?
-
-Install via npm:
-
-```bash
-npm install -g @google/gemini-cli
-```
-
-For more information, see the [Gemini CLI repository](https://github.com/google-gemini/gemini-cli) and the [headless mode documentation](https://google-gemini.github.io/gemini-cli/docs/cli/headless.html).
+**No.** This is an unofficial, community-driven project adapted from [codex-plugin-cc](https://github.com/openai/codex-plugin-cc). It is not affiliated with or endorsed by Google.
 
 ## Credits
 
-This project is heavily inspired by and structurally based on [codex-plugin-cc](https://github.com/openai/codex-plugin-cc) by OpenAI. The command structure, plugin architecture, and background job management patterns are adapted from that project.
+This project is heavily inspired by and structurally based on [codex-plugin-cc](https://github.com/openai/codex-plugin-cc) by OpenAI.
 
 ## License
 
