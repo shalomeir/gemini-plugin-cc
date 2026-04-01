@@ -21,45 +21,22 @@ This is an **unofficial, community-driven** adaptation of [codex-plugin-cc](http
 
 ## Install
 
-### Via marketplace
+In Claude Code, run:
 
 ```bash
 /plugin marketplace add shalomeir/gemini-plugin-cc
 /plugin install gemini@google-gemini
-/reload-plugins
 ```
 
-### From a Git URL (without the default marketplace)
+Then run `/gemini:setup` to check readiness. If Gemini CLI is missing and npm is available, it can offer to install it for you.
 
-You can point to any Git repository or local path as a marketplace source:
-
-```bash
-/plugin marketplace add https://github.com/shalomeir/gemini-plugin-cc.git
-/plugin install gemini@shalomeir-gemini-plugin-cc
-/reload-plugins
-```
-
-Then run:
-
-```bash
-/gemini:setup
-```
-
-`/gemini:setup` will tell you whether Gemini CLI is ready. If Gemini CLI is missing and npm is available, it can offer to install it for you.
-
-If you prefer to install Gemini CLI yourself, use:
+To install Gemini CLI manually:
 
 ```bash
 npm install -g @google/gemini-cli
 ```
 
-If Gemini CLI is installed but not authenticated yet, run:
-
-```bash
-!gemini
-```
-
-This launches the interactive Gemini CLI to complete authentication. Alternatively, set an API key:
+If Gemini CLI is installed but not authenticated yet, run `!gemini` in Claude Code to launch interactive login. Alternatively, set an API key:
 
 ```bash
 export GEMINI_API_KEY=your-api-key
@@ -76,9 +53,13 @@ One simple first run is:
 /gemini:analyze what are the main patterns in this codebase?
 ```
 
-### Local development
+### Update
 
-For local development, you can load the plugin directly without the marketplace:
+```bash
+/plugin marketplace update google-gemini
+```
+
+### Local development
 
 ```bash
 git clone https://github.com/shalomeir/gemini-plugin-cc.git
