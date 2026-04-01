@@ -1,5 +1,5 @@
 ---
-description: Delegate the current task to Gemini for a second opinion or deeper investigation
+description: Delegate the current task to Gemini CLI for a second opinion or deeper investigation. TRIGGER when user explicitly runs /gemini:rescue or asks to "delegate to Gemini CLI". DO NOT TRIGGER when code or conversation merely mentions "gemini".
 argument-hint: '[prompt]'
 context: fork
 allowed-tools: Bash(node:*), Bash(git:*), AskUserQuestion

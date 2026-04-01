@@ -1,5 +1,5 @@
 ---
-description: Review UI screenshots against code implementation
+description: Review UI screenshots against code implementation using Gemini CLI. TRIGGER when user explicitly runs /gemini:ui-review or asks to "use Gemini CLI for UI review". DO NOT TRIGGER when code or conversation merely mentions "gemini".
 argument-hint: '<@screenshot.png> [--base <ref>] [--background]'
 disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Bash(node:*), Bash(git:*), AskUserQuestion

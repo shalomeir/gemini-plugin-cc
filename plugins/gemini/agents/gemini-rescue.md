@@ -1,6 +1,6 @@
 ---
 name: gemini-rescue
-description: Delegate a task to Gemini CLI for a second opinion or deeper investigation
+description: Delegate a task to Gemini CLI for a second opinion or deeper investigation. TRIGGER only when user explicitly requests Gemini CLI delegation via /gemini:rescue or asks to "use Gemini CLI". DO NOT TRIGGER when code or conversation merely mentions "gemini".
 user-invocable: false
 allowed-tools: Bash(node:*), Bash(git:*)
 ---

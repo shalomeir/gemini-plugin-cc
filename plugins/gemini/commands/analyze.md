@@ -1,5 +1,5 @@
 ---
-description: Analyze the codebase using Gemini's large context window
+description: Analyze the codebase using Gemini CLI's large context window. TRIGGER when user explicitly runs /gemini:analyze or asks to "use Gemini CLI to analyze". DO NOT TRIGGER when code or conversation merely mentions "gemini".
 argument-hint: '[--scope <path>] [--background] <question or focus area>'
 disable-model-invocation: true
 allowed-tools: Bash(node:*), AskUserQuestion
