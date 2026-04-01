@@ -21,22 +21,18 @@ This is an **unofficial, community-driven** adaptation of [codex-plugin-cc](http
 
 ## Install
 
-Add the marketplace in Claude Code:
+### Via marketplace
 
 ```bash
 /plugin marketplace add shalomeir/gemini-plugin-cc
-```
-
-Install the plugin:
-
-```bash
 /plugin install gemini@google-gemini
+/reload-plugins
 ```
 
-Reload plugins:
+### Direct install (without marketplace)
 
 ```bash
-/reload-plugins
+/install-plugin https://github.com/shalomeir/gemini-plugin-cc.git
 ```
 
 Then run:
