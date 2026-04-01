@@ -10,6 +10,16 @@ import { createInterface } from "node:readline";
 
 import { binaryAvailable, runCommand } from "./process.mjs";
 
+/** Default timeout: 5 minutes. Override with GEMINI_TIMEOUT env var (in ms). */
+const DEFAULT_TIMEOUT_MS = 300_000;
+
+function resolveTimeout(optionsTimeout) {
+  if (optionsTimeout != null) return optionsTimeout;
+  const envVal = process.env.GEMINI_TIMEOUT;
+  if (envVal && Number.isFinite(Number(envVal))) return Number(envVal);
+  return DEFAULT_TIMEOUT_MS;
+}
+
 /**
  * Check if Gemini CLI is installed and return availability info.
  */
@@ -74,10 +84,23 @@ export function runGeminiSync(cwd, prompt, options = {}) {
     args.push("--include-directories", options.includeDirectories);
   }
 
+  const timeoutMs = resolveTimeout(options.timeout);
+
   const result = runCommand("gemini", args, {
     cwd,
-    env: { ...process.env, ...(options.env ?? {}) }
+    env: { ...process.env, ...(options.env ?? {}) },
+    timeout: timeoutMs
   });
+
+  if (result.signal === "SIGTERM") {
+    return {
+      status: 1,
+      response: "",
+      stats: null,
+      error: { message: `Gemini CLI timed out after ${Math.round(timeoutMs / 1000)}s` },
+      stderr: "timeout"
+    };
+  }
 
   if (result.error) {
     throw new Error(`Failed to run Gemini CLI: ${result.error.message}`);
@@ -137,10 +160,6 @@ export function runGeminiStream(cwd, prompt, options = {}) {
       args.push("--sandbox");
     }
 
-    if (options.allFiles) {
-      args.push("--all-files");
-    }
-
     if (options.includeDirectories) {
       args.push("--include-directories", options.includeDirectories);
     }
@@ -150,6 +169,13 @@ export function runGeminiStream(cwd, prompt, options = {}) {
       env: { ...process.env, ...(options.env ?? {}) },
       stdio: ["pipe", "pipe", "pipe"]
     });
+
+    const timeoutMs = resolveTimeout(options.timeout);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGTERM");
+    }, timeoutMs);
 
     const events = [];
     let finalResponse = "";
@@ -229,20 +255,25 @@ export function runGeminiStream(cwd, prompt, options = {}) {
     });
 
     child.on("close", (code) => {
+      clearTimeout(timer);
       const stderr = stderrChunks.join("");
+      const timeoutMsg = `Gemini CLI timed out after ${Math.round(timeoutMs / 1000)}s`;
       resolve({
-        status: code ?? 0,
+        status: timedOut ? 1 : (code ?? 0),
         response: finalResponse,
         stats: finalStats,
         sessionId,
         events,
-        error: code !== 0 ? { message: stderr.trim() || `Exit code ${code}` } : null,
-        stderr: stderr.trim(),
+        error: timedOut
+          ? { message: timeoutMsg }
+          : code !== 0 ? { message: stderr.trim() || `Exit code ${code}` } : null,
+        stderr: timedOut ? timeoutMsg : stderr.trim(),
         pid: child.pid
       });
     });
 
     child.on("error", (error) => {
+      clearTimeout(timer);
       reject(new Error(`Failed to spawn Gemini CLI: ${error.message}`));
     });
 
