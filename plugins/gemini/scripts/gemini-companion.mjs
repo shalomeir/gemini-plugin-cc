@@ -164,7 +164,7 @@ function buildSetupReport(cwd, actionsTaken = []) {
     nextSteps.push("Install Gemini CLI with `npm install -g @google/gemini-cli`.");
   }
   if (geminiStatus.available && !authStatus.authenticated) {
-    nextSteps.push("Run `!gemini` interactively to authenticate, or set `GEMINI_API_KEY` env var.");
+    nextSteps.push("Run `!gemini` interactively to authenticate.");
   }
 
   return {

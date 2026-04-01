@@ -33,29 +33,21 @@ export function getGeminiAvailability(cwd) {
 
 /**
  * Check if Gemini CLI has valid authentication.
- * Gemini auth is either via GEMINI_API_KEY env var or cached Google login.
+ * Gemini CLI handles its own auth (Google login or API key) internally.
+ * We just verify it works by running a minimal headless call.
  */
 export function getGeminiAuthStatus(cwd) {
-  if (process.env.GEMINI_API_KEY) {
-    return { authenticated: true, method: "api-key", detail: "GEMINI_API_KEY is set" };
-  }
-
-  if (process.env.GOOGLE_API_KEY) {
-    return { authenticated: true, method: "google-api-key", detail: "GOOGLE_API_KEY is set" };
-  }
-
-  // Try a minimal headless call to see if cached auth works
   const result = runCommand("gemini", ["-p", "ping", "--output-format", "json"], {
     cwd,
     env: { ...process.env }
   });
 
   if (result.status === 0) {
-    return { authenticated: true, method: "cached", detail: "Cached authentication available" };
+    return { authenticated: true, method: "cached", detail: "Authentication available" };
   }
 
   if (result.status === 41) {
-    return { authenticated: false, method: "none", detail: "Not authenticated. Run `!gemini` interactively to log in, or set GEMINI_API_KEY." };
+    return { authenticated: false, method: "none", detail: "Not authenticated. Run `!gemini` interactively to log in." };
   }
 
   return { authenticated: false, method: "unknown", detail: result.stderr.trim() || "Authentication check failed" };

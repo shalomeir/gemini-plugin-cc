@@ -53,11 +53,7 @@ To install Gemini CLI manually:
 npm install -g @google/gemini-cli
 ```
 
-If Gemini CLI is installed but not authenticated yet, run `!gemini` in Claude Code to launch interactive login. Alternatively, set an API key:
-
-```bash
-export GEMINI_API_KEY=your-api-key
-```
+If Gemini CLI is installed but not authenticated yet, run `!gemini` in Claude Code to launch interactive login.
 
 After install, you should see:
 
@@ -327,12 +323,9 @@ The plugin does not call the Gemini API directly. All requests flow through the 
 
 ## Authentication
 
-Gemini CLI supports multiple authentication methods:
+Run `gemini` once in your terminal to complete Google OAuth login. Your authentication state is shared with your local Gemini CLI installation.
 
-1. **Google account login** (interactive): Run `gemini` once in your terminal to complete OAuth login
-2. **API key**: Set `GEMINI_API_KEY` or `GOOGLE_API_KEY` environment variable
-
-Your authentication state is shared with your local Gemini CLI installation.
+Gemini CLI also supports API keys and `.env` files — see [Gemini CLI Configuration](https://google-gemini.github.io/gemini-cli/docs/get-started/configuration.html#environment-variables--env-files) for all authentication methods. This plugin passes through your shell environment as-is, so Gemini CLI handles authentication internally.
 
 ## Model Selection
 
