@@ -29,10 +29,14 @@ This is an **unofficial, community-driven** adaptation of [codex-plugin-cc](http
 /reload-plugins
 ```
 
-### Direct install (without marketplace)
+### From a Git URL (without the default marketplace)
+
+You can point to any Git repository or local path as a marketplace source:
 
 ```bash
-/install-plugin https://github.com/shalomeir/gemini-plugin-cc.git
+/plugin marketplace add https://github.com/shalomeir/gemini-plugin-cc.git
+/plugin install gemini@shalomeir-gemini-plugin-cc
+/reload-plugins
 ```
 
 Then run:
