@@ -1,5 +1,5 @@
 ---
-description: Ask Gemini a question or delegate a task
+description: Ask Gemini CLI a question or delegate a task. TRIGGER when user explicitly runs /gemini:ask or asks to "use Gemini CLI". DO NOT TRIGGER when code or conversation merely mentions "gemini".
 argument-hint: '[--background] [--model <model>] [--sandbox] <prompt>'
 disable-model-invocation: true
 allowed-tools: Bash(node:*), AskUserQuestion

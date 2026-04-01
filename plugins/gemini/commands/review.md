@@ -1,5 +1,5 @@
 ---
-description: Run a Gemini code review against local git state
+description: Run a Gemini CLI code review against local git state. TRIGGER when user explicitly runs /gemini:review or asks to "use Gemini CLI for code review". DO NOT TRIGGER when code or conversation merely mentions "gemini".
 argument-hint: '[--wait|--background] [--base <ref>] [--scope auto|working-tree|branch]'
 disable-model-invocation: true
 allowed-tools: Read, Glob, Grep, Bash(node:*), Bash(git:*), AskUserQuestion

@@ -1,5 +1,5 @@
 ---
-description: Show status of Gemini jobs
+description: Show status of Gemini CLI jobs. TRIGGER only when user explicitly runs /gemini:status. DO NOT TRIGGER on casual mention of "gemini".
 argument-hint: '[job-id] [--all]'
 disable-model-invocation: true
 allowed-tools: Bash(node:*)

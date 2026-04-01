@@ -1,5 +1,5 @@
 ---
-description: Analyze image, audio, or video files with Gemini
+description: Analyze image, audio, or video files with Gemini CLI. TRIGGER when user explicitly runs /gemini:media or asks to "use Gemini CLI for media analysis". DO NOT TRIGGER when code or conversation merely mentions "gemini".
 argument-hint: '<@file.png|mp3|mp4> [question or instruction]'
 disable-model-invocation: true
 allowed-tools: Bash(node:*), AskUserQuestion

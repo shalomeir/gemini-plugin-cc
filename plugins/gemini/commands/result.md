@@ -1,5 +1,5 @@
 ---
-description: Show result of a completed Gemini job
+description: Show result of a completed Gemini CLI job. TRIGGER only when user explicitly runs /gemini:result. DO NOT TRIGGER on casual mention of "gemini".
 argument-hint: '[job-id]'
 disable-model-invocation: true
 allowed-tools: Bash(node:*)

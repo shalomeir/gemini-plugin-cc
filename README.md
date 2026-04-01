@@ -14,6 +14,22 @@ This is an **unofficial, community-driven** adaptation of [codex-plugin-cc](http
 - `/gemini:rescue`, `/gemini:status`, `/gemini:result`, and `/gemini:cancel` to delegate work and manage background jobs
 - `/gemini:setup` to check Gemini CLI readiness and authentication
 
+## Invocation Rules
+
+This plugin's commands are **only activated by explicit invocation**. They will **not** be triggered simply because the word "gemini" appears in conversation or code.
+
+**Valid ways to invoke:**
+
+- Slash commands: `/gemini:analyze`, `/gemini:review`, `/gemini:ask`, etc.
+- Explicit CLI requests: "use Gemini CLI to review this code", "delegate to Gemini CLI"
+- Subagent: `gemini:gemini-rescue` via the Agent tool
+
+**Will NOT trigger:**
+
+- Mentioning "gemini" in discussion (e.g., "this gemini plugin needs a fix")
+- Working on code that contains "gemini" in file names or variables
+- Talking about Gemini models, APIs, or products without requesting CLI usage
+
 ## Requirements
 
 - **Gemini CLI access** — requires a [Google AI Studio API key](https://aistudio.google.com/apikey) or Google account login. Gemini CLI is available with a [Google One AI Premium subscription](https://one.google.com/explore-plan/gemini-advanced) or via API key.
@@ -281,11 +297,35 @@ Then check in with:
 /gemini:result
 ```
 
-## Gemini CLI Integration
+## Architecture
 
-This plugin wraps the [Gemini CLI](https://github.com/google-gemini/gemini-cli) in [headless mode](https://google-gemini.github.io/gemini-cli/docs/cli/headless.html). It uses the global `gemini` binary installed in your environment.
+This plugin uses a three-layer wrapping structure to bridge Claude Code and Gemini CLI:
 
-### Authentication
+```
+User ─── /gemini:* slash command
+           │
+           ▼
+   Command file (commands/*.md)
+   Instructs Claude how to parse arguments and run the script
+           │
+           ▼
+   gemini-companion.mjs (Node.js wrapper)
+   Argument parsing, background job management, result formatting
+   Uses utility modules in scripts/lib/*.mjs
+           │
+           ▼
+   Gemini CLI (headless mode)
+   Communicates with Google's Gemini API
+```
+
+- **Command files** (`plugins/gemini/commands/*.md`) — Slash command entry points. Each file tells Claude what arguments to accept and how to invoke the companion script.
+- **`gemini-companion.mjs`** — The main Node.js wrapper script. Calls Gemini CLI in [headless mode](https://google-gemini.github.io/gemini-cli/docs/cli/headless.html), manages background jobs, and formats output.
+- **`scripts/lib/*.mjs`** — Utility modules for state management, process control, git integration, prompt building, and file system operations.
+- **Gemini CLI** (`@google/gemini-cli`) — The globally installed binary that handles authentication and communicates with Google's Gemini API.
+
+The plugin does not call the Gemini API directly. All requests flow through the local Gemini CLI installation.
+
+## Authentication
 
 Gemini CLI supports multiple authentication methods:
 
@@ -294,7 +334,7 @@ Gemini CLI supports multiple authentication methods:
 
 Your authentication state is shared with your local Gemini CLI installation.
 
-### Model Selection
+## Model Selection
 
 Each command has a default model. You can override it with `--model` (`-m`):
 

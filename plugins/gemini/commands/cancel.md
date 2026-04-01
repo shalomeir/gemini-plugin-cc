@@ -1,5 +1,5 @@
 ---
-description: Cancel a running Gemini job
+description: Cancel a running Gemini CLI job. TRIGGER only when user explicitly runs /gemini:cancel. DO NOT TRIGGER on casual mention of "gemini".
 argument-hint: '[job-id]'
 disable-model-invocation: true
 allowed-tools: Bash(node:*)

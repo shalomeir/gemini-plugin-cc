@@ -1,5 +1,5 @@
 ---
-description: Check whether the local Gemini CLI is ready
+description: Check whether the local Gemini CLI is ready. TRIGGER only when user explicitly runs /gemini:setup or asks to "set up Gemini CLI". DO NOT TRIGGER when code or conversation merely mentions "gemini".
 argument-hint: ''
 allowed-tools: Bash(node:*), Bash(npm:*), AskUserQuestion
 ---
