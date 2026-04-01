@@ -1,16 +1,16 @@
 # Gemini plugin for Claude Code
 
-Use Gemini CLI from inside Claude Code for code reviews or to delegate tasks to Gemini.
+Use Gemini CLI from inside Claude Code to analyze codebases, process media files, run code reviews, or delegate tasks to Gemini.
 
 This is an **unofficial, community-driven** adaptation of [codex-plugin-cc](https://github.com/openai/codex-plugin-cc) for [Gemini CLI](https://github.com/google-gemini/gemini-cli). It is **NOT** an official Google product and is not affiliated with or endorsed by Google.
 
 ## What You Get
 
+- `/gemini:analyze` to analyze the codebase using Gemini's large context window (1M+ tokens)
+- `/gemini:media` to analyze images, audio, and video files
+- `/gemini:ui-review` to review UI screenshots against code implementation
 - `/gemini:review` for a Gemini-powered code review
 - `/gemini:ask` to ask Gemini a question or delegate a task
-- `/gemini:ui-review` to review UI screenshots against code implementation
-- `/gemini:media` to analyze images, audio, and video files
-- `/gemini:analyze` to analyze the codebase using Gemini's large context window (1M+ tokens)
 - `/gemini:rescue`, `/gemini:status`, `/gemini:result`, and `/gemini:cancel` to delegate work and manage background jobs
 - `/gemini:setup` to check Gemini CLI readiness and authentication
 
@@ -73,9 +73,7 @@ After install, you should see:
 One simple first run is:
 
 ```bash
-/gemini:review --background
-/gemini:status
-/gemini:result
+/gemini:analyze what are the main patterns in this codebase?
 ```
 
 ### Local development
@@ -88,6 +86,69 @@ claude --plugin-dir ./gemini-plugin-cc
 ```
 
 ## Usage
+
+### `/gemini:analyze`
+
+Analyzes the codebase or a subset of it using Gemini's large context window (1M+ tokens).
+
+Use it when you want Gemini to:
+
+- analyze overall architecture and patterns
+- find dependencies and coupling between modules
+- review code quality across the entire project
+- understand a large codebase holistically
+
+It supports `--scope <path>` and `--background`.
+
+Examples:
+
+```bash
+/gemini:analyze what are the main architectural patterns?
+/gemini:analyze --scope src/api review the API layer
+/gemini:analyze --background find all circular dependencies
+```
+
+### `/gemini:media`
+
+Analyzes media files (images, audio, video, PDF) using Gemini's native multimodal capabilities.
+
+Supported file types:
+
+- **Images**: PNG, JPG, JPEG, GIF, WEBP
+- **Audio**: MP3 (WAV is not supported)
+- **Video**: MP4, MOV
+- **Documents**: PDF
+
+Use the `@file` syntax to reference files. Gemini processes media natively — no 3rd-party preprocessing (ffmpeg, whisper, etc.) is needed.
+
+Examples:
+
+```bash
+/gemini:media @photo.jpg describe this image
+/gemini:media @recording.mp3 transcribe and summarize this audio
+/gemini:media @demo.mp4 describe what happens in this video
+/gemini:media @document.pdf summarize this document
+```
+
+### `/gemini:ui-review`
+
+Reviews UI screenshots against the current code implementation using Gemini's native vision capabilities.
+
+Use it when you want to:
+
+- compare a design mockup or screenshot with your component code
+- check visual accuracy, layout, typography, and accessibility
+- review responsive breakpoints and cross-browser concerns
+
+It supports `--background`.
+
+Examples:
+
+```bash
+/gemini:ui-review @screenshot.png review the header component
+/gemini:ui-review @design.png @current.png compare these two states
+/gemini:ui-review --background @full-page.png review all components
+```
 
 ### `/gemini:review`
 
@@ -132,69 +193,6 @@ Examples:
 /gemini:ask explain the authentication flow in this codebase
 /gemini:ask --background investigate why the tests are flaky
 /gemini:ask suggest improvements for the error handling in src/api/
-```
-
-### `/gemini:ui-review`
-
-Reviews UI screenshots against the current code implementation using Gemini's native vision capabilities.
-
-Use it when you want to:
-
-- compare a design mockup or screenshot with your component code
-- check visual accuracy, layout, typography, and accessibility
-- review responsive breakpoints and cross-browser concerns
-
-It supports `--background`.
-
-Examples:
-
-```bash
-/gemini:ui-review @screenshot.png review the header component
-/gemini:ui-review @design.png @current.png compare these two states
-/gemini:ui-review --background @full-page.png review all components
-```
-
-### `/gemini:media`
-
-Analyzes media files (images, audio, video, PDF) using Gemini's native multimodal capabilities.
-
-Supported file types:
-
-- **Images**: PNG, JPG, JPEG, GIF, WEBP
-- **Audio**: MP3 (WAV is not supported)
-- **Video**: MP4, MOV
-- **Documents**: PDF
-
-Use the `@file` syntax to reference files. Gemini processes media natively — no 3rd-party preprocessing (ffmpeg, whisper, etc.) is needed.
-
-Examples:
-
-```bash
-/gemini:media @photo.jpg describe this image
-/gemini:media @recording.mp3 transcribe and summarize this audio
-/gemini:media @demo.mp4 describe what happens in this video
-/gemini:media @document.pdf summarize this document
-```
-
-### `/gemini:analyze`
-
-Analyzes the codebase or a subset of it using Gemini's large context window (1M+ tokens).
-
-Use it when you want Gemini to:
-
-- analyze overall architecture and patterns
-- find dependencies and coupling between modules
-- review code quality across the entire project
-- understand a large codebase holistically
-
-It supports `--scope <path>` and `--background`.
-
-Examples:
-
-```bash
-/gemini:analyze what are the main architectural patterns?
-/gemini:analyze --scope src/api review the API layer
-/gemini:analyze --background find all circular dependencies
 ```
 
 ### `/gemini:rescue`
@@ -254,6 +252,27 @@ If Gemini CLI is missing and npm is available, it can offer to install it for yo
 
 ## Typical Flows
 
+### Deep Codebase Analysis
+
+```bash
+/gemini:analyze --background review the entire codebase architecture
+/gemini:status
+/gemini:result
+```
+
+### Analyze Media Files
+
+```bash
+/gemini:media @recording.mp3 what topics are discussed?
+/gemini:media @demo.mp4 summarize the user flow shown
+```
+
+### Review UI Against Screenshots
+
+```bash
+/gemini:ui-review @screenshot.png check the login page matches the design
+```
+
 ### Review Before Shipping
 
 ```bash
@@ -266,32 +285,11 @@ If Gemini CLI is missing and npm is available, it can offer to install it for yo
 /gemini:ask is this the right approach for handling concurrent requests?
 ```
 
-### Review UI Against Screenshots
-
-```bash
-/gemini:ui-review @screenshot.png check the login page matches the design
-```
-
-### Analyze Media Files
-
-```bash
-/gemini:media @recording.mp3 what topics are discussed?
-/gemini:media @demo.mp4 summarize the user flow shown
-```
-
-### Deep Codebase Analysis
-
-```bash
-/gemini:analyze --background review the entire codebase architecture
-/gemini:status
-/gemini:result
-```
-
 ### Start Something Long-Running
 
 ```bash
+/gemini:analyze --background review the entire codebase
 /gemini:review --background
-/gemini:ask --background analyze the test coverage gaps
 ```
 
 Then check in with:
@@ -325,11 +323,11 @@ Each command has a default model. You can override it with `--model` (`-m`):
 
 | Command | Default Model | Notes |
 |---------|--------------|-------|
+| `/gemini:analyze` | Gemini CLI default (auto-routed) | Uses Gemini CLI's built-in model routing |
+| `/gemini:media` | `gemini-3-flash-preview` | Flash model for image/audio/video |
+| `/gemini:ui-review` | `gemini-3-flash-preview` | Flash model for multimodal vision |
 | `/gemini:review` | Gemini CLI default (auto-routed) | Uses Gemini CLI's built-in model routing |
 | `/gemini:ask` | Gemini CLI default (auto-routed) | Uses Gemini CLI's built-in model routing |
-| `/gemini:ui-review` | `gemini-3-flash-preview` | Flash model for multimodal vision |
-| `/gemini:media` | `gemini-3-flash-preview` | Flash model for image/audio/video |
-| `/gemini:analyze` | Gemini CLI default (auto-routed) | Uses Gemini CLI's built-in model routing |
 
 For multimodal commands (`ui-review`, `media`), the default model can be changed via environment variable:
 
