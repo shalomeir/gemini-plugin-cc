@@ -29,7 +29,7 @@ node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" setup --json $ARGUMENT
 ```
 
 If Gemini is already installed but not authenticated:
-- Tell the user to run `!gemini` interactively to log in, or set `GEMINI_API_KEY`.
+- Tell the user to run `!gemini` interactively to log in.
 
 If Gemini is installed and authenticated:
 - Present the final setup output to the user.
