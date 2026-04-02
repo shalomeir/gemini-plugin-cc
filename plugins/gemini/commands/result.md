@@ -8,7 +8,7 @@ allowed-tools: Bash(node:*)
 Run:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" result $ARGUMENTS
+node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" result "$ARGUMENTS"
 ```
 
 Return the command stdout verbatim, exactly as-is.

@@ -19,13 +19,13 @@ Check if the arguments contain a media file reference (a path ending in `.mp4`, 
 **If a media file is detected**, use the `media` subcommand for native multimodal analysis:
 
 ```bash
-timeout 300 node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" media $ARGUMENTS
+timeout 300 node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" media "$ARGUMENTS"
 ```
 
 **Otherwise**, use the `task` subcommand:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" task $ARGUMENTS
+node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" task "$ARGUMENTS"
 ```
 
 Return Gemini's output verbatim.

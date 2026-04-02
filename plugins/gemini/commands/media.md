@@ -19,7 +19,7 @@ Supported file types:
 Foreground flow:
 - Run with a 5-minute timeout to allow for large media file analysis:
 ```bash
-timeout 300 node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" media $ARGUMENTS
+timeout 300 node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" media "$ARGUMENTS"
 ```
 - Return the command stdout verbatim, exactly as-is.
 - Do not paraphrase or add commentary.
