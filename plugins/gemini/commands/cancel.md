@@ -8,7 +8,7 @@ allowed-tools: Bash(node:*)
 Run:
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" cancel --json $ARGUMENTS
+node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" cancel --json "$ARGUMENTS"
 ```
 
 Present the cancellation result to the user.
