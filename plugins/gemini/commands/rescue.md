@@ -12,7 +12,17 @@ Raw slash-command arguments:
 
 If no prompt is provided, ask the user what they want Gemini to work on using `AskUserQuestion`.
 
-Then run:
+## Routing
+
+Check if the arguments contain a media file reference (a path ending in `.mp4`, `.mov`, `.webm`, `.mp3`, `.wav`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, `.pdf`).
+
+**If a media file is detected**, use the `media` subcommand for native multimodal analysis:
+
+```bash
+timeout 300 node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" media $ARGUMENTS
+```
+
+**Otherwise**, use the `task` subcommand:
 
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/gemini-companion.mjs" task $ARGUMENTS

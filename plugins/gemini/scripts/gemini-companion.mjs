@@ -18,6 +18,7 @@
 
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -417,6 +418,96 @@ async function handleUiReview(argv) {
 
 // ── Media ───────────────────────────────────────────────────────────
 
+const MEDIA_EXTENSIONS = new Set([
+  "mp4", "mov", "webm",
+  "mp3", "wav", "ogg", "flac",
+  "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg",
+  "pdf"
+]);
+
+const MEDIA_TYPE_MAP = {
+  mp4: "video", mov: "video", webm: "video",
+  mp3: "audio", wav: "audio", ogg: "audio", flac: "audio",
+  png: "image", jpg: "image", jpeg: "image", gif: "image", webp: "image", bmp: "image", svg: "image",
+  pdf: "document"
+};
+
+const DEFAULT_MEDIA_PROMPTS = {
+  video: "Analyze this video in detail. Describe: content, scene composition, key elements, mood/atmosphere, and potential use cases.",
+  audio: "Analyze this audio file. Describe: what you hear, speakers, background sounds, and mood.",
+  image: "Analyze this image in detail. Describe: what you see, composition, color palette, style, and notable elements.",
+  document: "Summarize the contents of this document.",
+  file: "Analyze the contents of this file."
+};
+
+/**
+ * Expand ~ to home directory and resolve the path.
+ */
+function expandHomePath(filePath) {
+  if (filePath.startsWith("~/") || filePath === "~") {
+    return path.join(os.homedir(), filePath.slice(1));
+  }
+  return filePath;
+}
+
+/**
+ * Check if a string looks like a media file reference (with or without @).
+ */
+function extractMediaFileRef(token) {
+  const cleaned = token.startsWith("@") ? token.slice(1) : token;
+  const ext = path.extname(cleaned).toLowerCase().replace(".", "");
+  if (MEDIA_EXTENSIONS.has(ext)) {
+    return { ref: cleaned, ext, type: MEDIA_TYPE_MAP[ext] || "file" };
+  }
+  return null;
+}
+
+/**
+ * Build a media analysis prompt, ensuring:
+ * 1. File path has @ prefix for Gemini CLI
+ * 2. ~ is expanded to absolute path
+ * 3. Default analysis prompt is added if user gave none
+ */
+function buildMediaPrompt(rawPrompt) {
+  const tokens = rawPrompt.trim().split(/\s+/);
+  let fileRef = null;
+  let fileTokenIndex = -1;
+
+  // Find the media file reference in tokens
+  for (let i = 0; i < tokens.length; i++) {
+    const match = extractMediaFileRef(tokens[i]);
+    if (match) {
+      fileRef = match;
+      fileTokenIndex = i;
+      break;
+    }
+  }
+
+  if (!fileRef) {
+    // No media file found — return as-is (will be handled by Gemini)
+    return rawPrompt;
+  }
+
+  // Expand ~ and ensure @ prefix
+  const expandedPath = expandHomePath(fileRef.ref);
+  const geminiFileRef = `@${expandedPath}`;
+
+  // Rebuild: replace the file token with the expanded @-prefixed version
+  tokens[fileTokenIndex] = geminiFileRef;
+
+  // Check if user provided any instruction beyond the file reference
+  const instructionTokens = tokens.filter((_, i) => i !== fileTokenIndex);
+  const hasInstruction = instructionTokens.some((t) => t.length > 0 && !extractMediaFileRef(t));
+
+  if (hasInstruction) {
+    return tokens.join(" ");
+  }
+
+  // No instruction — add default analysis prompt
+  const defaultPrompt = DEFAULT_MEDIA_PROMPTS[fileRef.type] || DEFAULT_MEDIA_PROMPTS.file;
+  return `${geminiFileRef} ${defaultPrompt}`;
+}
+
 async function executeMediaRun(request) {
   ensureGeminiReady(request.cwd);
 
@@ -424,11 +515,13 @@ async function executeMediaRun(request) {
     throw new Error("Provide a media file reference and optional instructions. Example: @photo.jpg describe this image");
   }
 
+  const prompt = buildMediaPrompt(request.prompt);
+
   if (request.onProgress) {
     request.onProgress({ message: "Running Gemini media analysis...", phase: "starting" });
   }
 
-  const result = await runGeminiStream(request.cwd, request.prompt, {
+  const result = await runGeminiStream(request.cwd, prompt, {
     model: request.model || DEFAULT_MULTIMODAL_MODEL,
     onProgress: request.onProgress
   });
